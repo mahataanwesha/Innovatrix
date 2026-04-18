@@ -23,8 +23,8 @@ export const analyzeData = async (req: Request, res: Response) => {
           content = text;
         } catch (ocrError) {
           console.error("OCR Error:", ocrError);
-          // Fallback if Tesseract crashes
-          content = `Image uploaded: ${req.file.originalname}. Size: ${req.file.size} bytes. (Text extraction failed). Random ID: ${Math.random().toString(36).substring(7)}`;
+          // Fallback if Tesseract crashes: include a special keyword to trigger a specific factor in analyzer
+          content = `Image uploaded: ${req.file.originalname}. Size: ${req.file.size} bytes. [ocr_failed_placeholder] Random ID: ${Math.random().toString(36).substring(7)}`;
         }
       } else if (fileExt.endsWith('.pdf')) {
         const dataBuffer = fs.readFileSync(filePath);
@@ -41,20 +41,26 @@ export const analyzeData = async (req: Request, res: Response) => {
 
     const analysisResult = await analyzeInput(inputType, content);
 
-    const report = await Report.create({
-      userId: (req as any).user ? (req as any).user._id : '64f1b2c3e4d5a6b7c8d9e0f1', // placeholder
-      inputType,
-      content: content.length > 500 ? content.substring(0, 500) + '...' : content,
-      trustScore: analysisResult.trustScore,
-      riskLevel: analysisResult.riskLevel,
-      factors: analysisResult.factors,
-      recommendation: analysisResult.recommendation,
-    });
+    let reportId = 'no-db-id';
+    try {
+      const report = await Report.create({
+        userId: (req as any).user ? (req as any).user._id : '64f1b2c3e4d5a6b7c8d9e0f1', // placeholder
+        inputType,
+        content: content.length > 500 ? content.substring(0, 500) + '...' : content,
+        trustScore: analysisResult.trustScore,
+        riskLevel: analysisResult.riskLevel,
+        factors: analysisResult.factors,
+        recommendation: analysisResult.recommendation,
+      });
+      reportId = report._id.toString();
+    } catch (dbErr) {
+      console.warn("MongoDB disabled or failed, skipping Mongoose save. Frontend handles Firestore saving.");
+    }
 
     res.status(200).json({
       status: 'success',
       data: {
-        reportId: report._id,
+        reportId: reportId,
         ...analysisResult,
       }
     });
