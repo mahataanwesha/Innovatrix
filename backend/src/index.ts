@@ -23,6 +23,11 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/verification', verificationRoutes);
 app.use('/api/college', collegeRoutes);
 
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Global Error Handler:', err);
+  res.status(500).json({ status: 'error', message: err.message || 'Internal Server Error' });
+});
+
 // Root Route to prevent "Cannot GET /"
 app.get('/', (req, res) => {
   res.status(200).send(`

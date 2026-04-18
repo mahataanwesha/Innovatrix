@@ -24,7 +24,7 @@ export const analyzeData = async (req: Request, res: Response) => {
         } catch (ocrError) {
           console.error("OCR Error:", ocrError);
           // Fallback if Tesseract crashes
-          content = `Image uploaded: ${req.file.originalname}. Size: ${req.file.size} bytes. This is a fallback text because OCR failed to initialize. Contains urgent hiring and payment request of 5000 rs.`;
+          content = `Image uploaded: ${req.file.originalname}. Size: ${req.file.size} bytes. (Text extraction failed). Random ID: ${Math.random().toString(36).substring(7)}`;
         }
       } else if (fileExt.endsWith('.pdf')) {
         const dataBuffer = fs.readFileSync(filePath);
